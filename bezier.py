@@ -95,18 +95,30 @@ def redraw():
     pX = [point.value[0] for point in points]
     pY = [point.value[1] for point in points]
     ax.scatter(pX,pY)
-
-    minX,minY = maxX,maxY = patches[0].center
-    mini,maxi = min(minX,minY),max(maxX,maxY)
-    for x,y in [patch.center for patch in patches]:
-        maxi = max(maxi,x,y)
-        mini = min(mini,x,y)
-    #ax.set_xlim([mini*0.91,maxi*1.1])
-    #ax.set_ylim([mini*0.91,maxi*1.1])
-    print(ax.set_ylim(bottom = mini*0.91, top=maxi*1.1),ax.set_xlim(left=mini*0.91, right=maxi*1.1),maxi,mini)
-    ax.axis('equal')
     p = PatchCollection(patches,alpha=0.4)
     ax.add_collection(p)
+    if patches:
+        minX,minY = maxX,maxY = patches[0].center
+        mini,maxi = min(minX,minY),max(maxX,maxY)
+        for x,y in [patch.center for patch in patches]:
+            if maxX < x:
+                maxX = x
+            if maxY < y:
+                maxY = y
+            if minX > x:
+                maxX = x
+            if minY > y:
+                maxY = y
+            maxi = max(maxi,x,y)
+            mini = min(mini,x,y)
+        if maxY == minY:
+            maxY, minY = maxY*1.1, minY*0.9
+        if maxX == minX:
+            maxX, minX = maxX*1.1, minX*0.9
+        ax.set_ylim(bottom=minY, top=maxY)
+        ax.set_xlim(left=minX, right=maxX)
+        
+    ax.axis('equal')
     
     fig.canvas.draw_idle()
 def update(nPoints):
@@ -152,21 +164,6 @@ def setPoint(event):
     B.setPoint(int(text_boxN.text[0]),float(text_boxX.text[0]),float(text_boxY.text[0]))
     patches[int(text_boxN.text[0])] = Circle((float(text_boxX.text[0]),float(text_boxY.text[0])),0.1)
     redraw()
-plt.close('all')
-fig = plt.figure()#figsize=(10,8))
-fig.canvas.set_window_title('Bezier')
-
-cid = fig.canvas.mpl_connect('button_press_event', onclick)
-mpt = fig.canvas.mpl_connect('motion_notify_event', onmove)
-
-ax = fig.add_subplot(111)
-plt.subplots_adjust(bottom=0.2)
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-
-axStep = plt.axes([0.15, 0.025, 0.5, 0.05])
-sStep = Slider(axStep,"intervals",1,999,valinit=2,valfmt="%.3d")
-sStep.on_changed(update)
 
 def textNVerify(text):
     text = str(text)
@@ -183,51 +180,69 @@ def textYVerify(text):
     if text.count('.') > 1:
         text.replace('.','',1)
     text_boxY.text = ''.join(filter(lambda x: x in '1234567890.',text))[:13]
-WIDTH = 0.2
-axboxN = plt.axes([0.15, 0.075, WIDTH, 0.035])
-text_boxN = TextBox(axboxN, 'Point #')
-axboxX = plt.axes([0.15+0.1+WIDTH, 0.075, WIDTH, 0.035])
-text_boxX = TextBox(axboxX, 'Point X')
-axboxY = plt.axes([0.15+(0.1+WIDTH)*2, 0.075, WIDTH, 0.035])
-text_boxY = TextBox(axboxY, 'Point Y')
-
-text_boxN.on_text_change(textNVerify)
-text_boxX.on_text_change(textXVerify)
-text_boxY.on_text_change(textYVerify)
-
-
-addax = plt.axes([0.85, 0.025, 0.1, 0.04])
-button = Button(addax, 'Add')
-button.on_clicked(newPoint)
-moveax = plt.axes([0.75, 0.025, 0.1, 0.04])
-buttonMove = Button(moveax, 'Set')
-buttonMove.on_clicked(setPoint)
-
-patches = []
-selectedControl = None
-controlPoints = [(1,1),(2,3),(4,3),(3,1)]
-minX,minY = maxX,maxY = controlPoints[0]
-for x,y in controlPoints:
-    if maxX < x:
-        maxX = x
-    if maxY < y:
-        maxY = y
-    if minX > x:
-        maxX = x
-    if minY > y:
-        maxY = y
-    temp = Circle((x,y),0.1)
-    patches.append(temp)
     
-B = Bezier(list(circle.center for circle in patches))
-points = B.genPoints()
+if __name__ == '__main__':
+    plt.close('all')
+    fig = plt.figure()#figsize=(10,8))
+    fig.canvas.set_window_title('Bezier')
 
-pX = [point.value[0] for point in points]
-pY = [point.value[1] for point in points]
-ax.scatter(pX,pY)
-ax.set_xlim([minX*0.91,maxX*1.1])
-ax.set_ylim([minY*0.91,maxY*1.1])
-p = PatchCollection(patches,alpha=0.4)
-ax.add_collection(p)
-fig.set_figheight
-plt.show()
+    cid = fig.canvas.mpl_connect('button_press_event', onclick)
+    mpt = fig.canvas.mpl_connect('motion_notify_event', onmove)
+
+    ax = fig.add_subplot(111)
+    plt.subplots_adjust(bottom=0.2)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    
+    axStep = plt.axes([0.15, 0.025, 0.5, 0.05])
+    sStep = Slider(axStep,"intervals",1,999,valinit=2,valfmt="%.3d")
+    sStep.on_changed(update)
+    WIDTH = 0.2
+    axboxN = plt.axes([0.15, 0.075, WIDTH, 0.035])
+    text_boxN = TextBox(axboxN, 'Point #')
+    axboxX = plt.axes([0.15+0.1+WIDTH, 0.075, WIDTH, 0.035])
+    text_boxX = TextBox(axboxX, 'Point X')
+    axboxY = plt.axes([0.15+(0.1+WIDTH)*2, 0.075, WIDTH, 0.035])
+    text_boxY = TextBox(axboxY, 'Point Y')
+
+    text_boxN.on_text_change(textNVerify)
+    text_boxX.on_text_change(textXVerify)
+    text_boxY.on_text_change(textYVerify)
+
+
+    addax = plt.axes([0.85, 0.025, 0.1, 0.04])
+    button = Button(addax, 'Add')
+    button.on_clicked(newPoint)
+    moveax = plt.axes([0.75, 0.025, 0.1, 0.04])
+    buttonMove = Button(moveax, 'Set')
+    buttonMove.on_clicked(setPoint)
+
+    patches = []
+    selectedControl = None
+    controlPoints = [(1,1),(2,3),(4,3),(3,1)]
+    minX,minY = maxX,maxY = controlPoints[0]
+    for x,y in controlPoints:
+        if maxX < x:
+            maxX = x
+        if maxY < y:
+            maxY = y
+        if minX > x:
+            maxX = x
+        if minY > y:
+            maxY = y
+        temp = Circle((x,y),0.1)
+        patches.append(temp)
+    print(maxX, maxY)
+    B = Bezier(list(circle.center for circle in patches))
+    points = B.genPoints()
+
+    pX = [point.value[0] for point in points]
+    pY = [point.value[1] for point in points]
+    ax.scatter(pX,pY)
+    ax.set_xlim([minX*0.91,maxX*1.1])
+    ax.set_ylim([minY*0.91,maxY*1.1])
+    ax.autoscale(enable=False)
+    p = PatchCollection(patches,alpha=0.4)
+    ax.add_collection(p)
+    plt.autoscale(enable=False)
+    plt.show()
